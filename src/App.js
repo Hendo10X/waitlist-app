@@ -3,7 +3,7 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Initialize Firebase (replace with your config)
 const firebaseConfig = {
@@ -19,26 +19,28 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const UNSPLASH_ACCESS_KEY = 'oXdBmyHy758LmSwMBA_8RN9VQJrWjzez_rmZ8rvBhVs'; // Replace with your Unsplash access key
+const UNSPLASH_ACCESS_KEY = 'oXdBmyHy758LmSwMBA_8RN9VQJrWjzez_rmZ8rvBhVs';
 
 export default function WaitlistForm() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [backgroundImage, setBackgroundImage] = useState('');
+  const [backgroundImages, setBackgroundImages] = useState([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
     const fetchBackgroundImage = async () => {
       try {
         const response = await fetch(`https://api.unsplash.com/photos/random?query=space&client_id=${UNSPLASH_ACCESS_KEY}`);
         const data = await response.json();
-        setBackgroundImage(data.urls.full);
+        setBackgroundImages(prevImages => [...prevImages, data.urls.full].slice(-2));
+        setCurrentImageIndex(prevIndex => (prevIndex + 1) % 2);
       } catch (error) {
         console.error('Error fetching background image:', error);
       }
     };
 
     fetchBackgroundImage();
-    const intervalId = setInterval(fetchBackgroundImage, 60000); // Fetch new image every minute
+    const intervalId = setInterval(fetchBackgroundImage, 30000); // Fetch new image every 30 seconds
 
     return () => clearInterval(intervalId);
   }, []);
@@ -68,14 +70,18 @@ export default function WaitlistForm() {
 
   return (
     <div className="min-h-screen flex flex-col font-sans relative overflow-hidden">
-      {/* Background image */}
-      <motion.div
-        className="absolute inset-0 w-full h-full bg-cover bg-center"
-        style={{ backgroundImage: `url(${backgroundImage})` }}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1 }}
-      />
+      {/* Background images */}
+      <AnimatePresence initial={false}>
+        <motion.div
+          key={backgroundImages[currentImageIndex]}
+          className="absolute inset-0 w-full h-full bg-cover bg-center"
+          style={{ backgroundImage: `url(${backgroundImages[currentImageIndex]})` }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 2 }}
+        />
+      </AnimatePresence>
       
       {/* Overlay */}
       <div className="absolute inset-0 bg-black opacity-50" />
